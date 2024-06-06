@@ -5,9 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\PermataAS;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Carbon;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use PhpParser\Node\Expr\Cast;
 
 class PermataController extends Controller
 {
@@ -77,13 +78,13 @@ class PermataController extends Controller
                  } else {
                     $data = new PermataAS();                    
                     $data->cust_ref_id = $msgRqHdr['CustRefID'] ;
-                    // $data->request_timestamp = Carbon::parse($msgRqHdr['RequestTimestamp'])->timestamp;
+                    $data->request_timestamp = Carbon::parse($msgRqHdr['RequestTimestamp']);
                     $data->status = $request['status'];
                     $data->group_id = $transactionInfo['GroupID'];
                     $data->seqnum = $transactionInfo['SeqNum'] ;
                     $data->account_number = $transactionInfo['AccountNumber'] ;
                     $data->currency = $transactionInfo['Currency'] ;
-                    $data->value_date = $transactionInfo['ValueDate'] ;
+                    $data->value_date = Carbon::createFromFormat('dmY',$transactionInfo['ValueDate']) ;
                     $data->opening_balance = $transactionInfo['OpeningBalance'];
                         $data->extref = $statements['ExtRef'];
                         $data->trx_type = $statements['TrxType'] ;
@@ -93,7 +94,9 @@ class PermataController extends Controller
                         $data->description = $statements['Description'];
                     $data->close_bal = $transactionInfo['CloseBal'] ;
                     $data->notes  = $transactionInfo['Notes'];    
-
+                    $data->is_to_hero = 0;
+                    $data->recv_time = Carbon::now();
+                    
                     $data->save();   
 
                     $return = [
@@ -135,12 +138,17 @@ class PermataController extends Controller
                         "MsgRsHdr"=> [
                             "ResponseTimestamp"=> date(DATE_ATOM,time()),
                             "CustRefID"=> 'trow',
-                            "StatusCode"=> "01",
-                            "StatusDesc"=> $th
+                            "StatusCode"=> "01 ".Carbon::parse($msgRqHdr['RequestTimestamp']),
+                            "StatusDesc"=> $th->errorInfo
                         ]
                     ]
             ];
             return  response()->json($return)->setStatusCode(Response::HTTP_UNAUTHORIZED);;
         }
+    }
+
+    public function fromDateTime($value)
+    {
+        return Carbon::parse(parent::fromDateTime($value))->format('Y/m/d H:i:s');
     }
 }

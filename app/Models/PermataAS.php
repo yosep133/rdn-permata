@@ -18,6 +18,10 @@ class PermataAS extends Model
     ];
     protected $casts = [ 
         'request_timestamp'=>'datetime',
+        'opening_balance'=>'decimal:2',
+        'close_bal'=>'decimal:2',
     ];
+
+
     
 }
