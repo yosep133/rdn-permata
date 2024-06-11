@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\NotifJob;
 use App\Models\PermataAS;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -98,6 +99,10 @@ class PermataController extends Controller
                     $data->recv_time = Carbon::now();
                     
                     $data->save();   
+
+                    // entry queue
+                    dispatch(new NotifJob($data));
+
 
                     $return = [
                         "NotificationTransactionRs" =>

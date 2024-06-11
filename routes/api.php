@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PermataController;
+use App\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,7 +19,8 @@ use App\Http\Controllers\PermataController;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
-
+// regist user 
+Route::post('/register/user',[UserController::class,'register']);
 // Route::middleware('auth.basic')
 //     ->post('/api/appldata_v2/appldata/trxnotify',function(Request $request){
         

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class PermataAS extends Model
 {
-    protected $connection = 'sqlsrv';
+    protected $connection = 'sasol';
     public $timestamps = false;
     // public const UPDATED_AT = NULL;
     // public const CREATED_AT = NULL;
