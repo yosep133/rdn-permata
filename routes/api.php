@@ -26,8 +26,8 @@ Route::post('/register/user',[UserController::class,'register']);
         
 // });
 
-Route::post('/appldata_v2/appldata/trxnotify',[PermataController::class,'notif']);
 // Route::post('/appldata_v2/appldata/test',[PermataController::class,'test']);
-// Route::prefix('api')->group(function () {
-    
-// });
+Route::middleware(['basicAuth'])->group(function (){
+    Route::post('/appldata_v2/appldata/test',[PermataController::class,'test']);    
+    Route::post('/appldata_v2/appldata/trxnotify',[PermataController::class,'notif']);
+});

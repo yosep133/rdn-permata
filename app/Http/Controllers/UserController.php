@@ -37,4 +37,12 @@ class UserController extends Controller
             //throw $th;
         }
     }
+
+    public function reqToken(Request $request){
+        try {
+            //code...
+        } catch (\Throwable $th) {
+            //throw $th;
+        }
+    }
 }

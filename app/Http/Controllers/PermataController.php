@@ -19,7 +19,7 @@ class PermataController extends Controller
     }
     
     public function notif(Request $request){
-        try {
+        // try {
             $validator = Validator::make($request->all(),[
                 "NotificationTransactionRq.TransactionInfo.GroupID"=>"required",
                 "NotificationTransactionRq.MsgRqHdr.CustRefID" => "required",
@@ -56,7 +56,7 @@ class PermataController extends Controller
                 $cekExtRef = PermataAS::where('cust_ref_id',$msgRqHdr['CustRefID'])->first();
                 
                 # code cek account number 
-                $cekAccount = DB::connection('sqlsrv')
+                $cekAccount = DB::connection('sasdev')
                     ->table('sas.dbo.subacc')
                     ->where('account_sub',$transactionInfo['AccountNumber'])
                     ->get();
@@ -97,12 +97,11 @@ class PermataController extends Controller
                     $data->notes  = $transactionInfo['Notes'];    
                     $data->is_to_hero = 0;
                     $data->recv_time = Carbon::now();
-                    
+
                     $data->save();   
-
                     // entry queue
-                    dispatch(new NotifJob($data));
-
+                    dispatch(new NotifJob($notifTrans));
+                    
 
                     $return = [
                         "NotificationTransactionRs" =>
@@ -135,21 +134,21 @@ class PermataController extends Controller
 
             return response()->json($return)->setStatusCode(Response::HTTP_UNAUTHORIZED);
             
-        } catch (\Throwable $th) {
-            //throw $th;
-            $return = [
-                "NotificationTransactionRs" =>
-                    [
-                        "MsgRsHdr"=> [
-                            "ResponseTimestamp"=> date(DATE_ATOM,time()),
-                            "CustRefID"=> 'trow',
-                            "StatusCode"=> "01 ".Carbon::parse($msgRqHdr['RequestTimestamp']),
-                            "StatusDesc"=> $th->errorInfo
-                        ]
-                    ]
-            ];
-            return  response()->json($return)->setStatusCode(Response::HTTP_UNAUTHORIZED);;
-        }
+        // } catch (\Throwable $th) {
+        //     //throw $th;
+        //     $return = [
+        //         "NotificationTransactionRs" =>
+        //             [
+        //                 "MsgRsHdr"=> [
+        //                     "ResponseTimestamp"=> date(DATE_ATOM,time()),
+        //                     "CustRefID"=> 'trow',
+        //                     "StatusCode"=> "01",
+        //                     "StatusDesc"=> $th
+        //                 ]
+        //             ]
+        //     ];
+        //     return  response()->json($return)->setStatusCode(Response::HTTP_UNAUTHORIZED);;
+        // }
     }
 
     public function fromDateTime($value)

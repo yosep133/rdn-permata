@@ -7,12 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class PermataAS extends Model
 {
-    protected $connection = 'sasol';
+    protected $connection = 'sasoldev';
     public $timestamps = false;
     // public const UPDATED_AT = NULL;
     // public const CREATED_AT = NULL;
     protected $primaryKey = 'cust_ref_id';
-    protected $table = 'PermataAs';
+    protected $table = 'PermataAS';
     protected $fillable = [
         'cust_ref_id','request_timestamp','group_id','seqnum','account_number','currency','value_date dat','opening_balance','extref','trx_type','flag','dc','cash_value','description','close_bal','notes','status'
     ];
@@ -20,6 +20,7 @@ class PermataAS extends Model
         'request_timestamp'=>'datetime',
         'opening_balance'=>'decimal:2',
         'close_bal'=>'decimal:2',
+        'cust_ref_id' => 'string',
     ];
 
 
