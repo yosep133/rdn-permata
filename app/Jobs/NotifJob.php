@@ -9,6 +9,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class NotifJob implements ShouldQueue
 {
@@ -43,9 +44,9 @@ class NotifJob implements ShouldQueue
 
             $date = Carbon::now();
             $amount ='' ;
-            if ( $statements['DC'] == 'C') {
+            if ( $statements['DC'] == 'Cr') {
                 $amount = '-'.$statements['CashValue'];
-            } else {
+            } else if ( $statements['DC'] == 'Dr')  {
                 $amount = $statements['CashValue'];
             }
             //  sending to cash bo 
@@ -60,6 +61,13 @@ class NotifJob implements ShouldQueue
                 "Type" => 'M',
                 "Flag" => 0
             ]);
+            Log::info('send to Cashbo '.
+                "DateBo ".Carbon::now() .",ClientNo " .$account[0]->no_cust.
+                ",Reference " ."Permata ".$date->format("Y/m/d H:m:s").
+                ",Amount ".$amount.
+                ",Type ".'M'.
+                ",Flag "."0"
+            );
             // update permataAs is to hero 
             $resutl = DB::connection('sasoldev')
                 ->table('permataAS')
@@ -68,7 +76,7 @@ class NotifJob implements ShouldQueue
 
         } catch (\Throwable $th) {
             //throw $th;
-            echo 'error '.$th;
+            Log::error($th);
         }
     }
 }

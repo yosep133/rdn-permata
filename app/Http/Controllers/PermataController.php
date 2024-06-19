@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use PhpParser\Node\Expr\Cast;
 
@@ -37,6 +38,8 @@ class PermataController extends Controller
             $msgRqHdr = $notifTrans['MsgRqHdr'];
             $transactionInfo = $notifTrans['TransactionInfo'];
             $statements = $transactionInfo['Statements'];
+            
+            Log::channel('notif')->info($request);
 
             if ($validator->fails()) {
             //     # code error respon
@@ -59,7 +62,7 @@ class PermataController extends Controller
                 $cekAccount = DB::connection('sasdev')
                     ->table('sas.dbo.subacc')
                     ->where('account_sub',$transactionInfo['AccountNumber'])
-                    ->get();
+                    ->first();
                     
                 if ($cekExtRef) {
                       
@@ -74,8 +77,23 @@ class PermataController extends Controller
                                 ]
                             ]
                     ];
-
+                    Log::error(" CustRefId:".$msgRqHdr['CustRefID']." Already input");
                     return response()->json($return)->setStatusCode(Response::HTTP_UNAUTHORIZED);;
+                 }
+                 elseif (!$cekAccount) {
+                    $return = [
+                        "NotificationTransactionRs" =>
+                            [
+                                "MsgRsHdr"=> [
+                                    "ResponseTimestamp"=> date(DATE_ATOM,time()),
+                                    "CustRefID"=> $msgRqHdr['CustRefID'],
+                                    "StatusCode"=> "01",
+                                    "StatusDesc"=> "Failed"
+                                ]
+                            ]
+                    ];
+                    Log::error("Account Number not Find ".$transactionInfo['AccountNumber']. " CustRefId:".$msgRqHdr['CustRefID']);
+                    return response()->json($return)->setStatusCode(Response::HTTP_UNAUTHORIZED);                
                  } else {
                     $data = new PermataAS();                    
                     $data->cust_ref_id = $msgRqHdr['CustRefID'] ;
