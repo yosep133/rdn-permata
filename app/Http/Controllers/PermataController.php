@@ -92,7 +92,7 @@ class PermataController extends Controller
                                 ]
                             ]
                     ];
-                    Log::error("Account Number not Find ".$transactionInfo['AccountNumber']. " CustRefId:".$msgRqHdr['CustRefID']);
+                    Log::error("Cannot Find Account Number ".$transactionInfo['AccountNumber']. " CustRefId:".$msgRqHdr['CustRefID']);
                     return response()->json($return)->setStatusCode(Response::HTTP_UNAUTHORIZED);                
                  } else {
                     $data = new PermataAS();                    
