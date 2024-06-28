@@ -41,7 +41,7 @@ class NotifJob implements ShouldQueue
                         ->select('no_cust')
                         ->where('account_sub','=',$transactionInfo['AccountNumber'])
                         ->get();
-
+            //
             $date = Carbon::now();
             $amount ='' ;
             if ( $statements['DC'] == 'Cr') {
