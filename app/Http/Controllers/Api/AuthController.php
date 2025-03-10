@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -61,20 +62,28 @@ class AuthController extends Controller
                     ]
                 );
             
-                if ($validatorUser->fails()) {
-                    return response() ->json([
-                        'status'=>false,
-                        'message' => 'email & password does not match with our record'
-                    ],401);
-                }
+            if ($validatorUser->fails()) {
+                return response() ->json([
+                    'status'=>false,
+                    'message' => 'email & password does not to be empty'
+                ],401);
+            }
 
-                $user = User::where('email',$request->email)->first();
-
+            
+            if (! Auth::attempt($request->only('email', 'password'))) {
                 return response()->json([
-                    'status'=>true,
-                    'message'=> 'User Logged In successfully',
-                    'token' => $user->createToken("API TOKEN")->plainTextToken
-                ], 200);
+                    'status'=>false,
+                    'message' => 'email & password does not match with our record'
+                ], 401);
+            }
+
+            $user = User::where('email',$request->email)->first();
+
+            return response()->json([
+                'status'=>true,
+                'message'=> 'User Logged In successfully',
+                'token' => $user->createToken("API TOKEN")->plainTextToken
+            ], 200);
 
         } catch (\Throwable $th) {            
             return response()->json([

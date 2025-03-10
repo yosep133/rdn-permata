@@ -39,7 +39,7 @@ class PermataController extends Controller
             $transactionInfo = $notifTrans['TransactionInfo'];
             $statements = $transactionInfo['Statements'];
             
-            Log::channel('notif')->info($request);
+            // Log::channel('notif')->info($request);
 
             if ($validator->fails()) {
             //     # code error respon

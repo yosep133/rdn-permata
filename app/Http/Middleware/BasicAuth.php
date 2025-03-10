@@ -15,8 +15,10 @@ class BasicAuth
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $AUTH_USER = 'ec1f94aa-161b-446a-afb0-2de29a52060e';
-        $AUTH_PASS = 'fd0f38d4-46dd-44ce-b318-c208f7f0e6df';
+        // $AUTH_USER = 'ec1f94aa-161b-446a-afb0-2de29a52060e';
+        // $AUTH_PASS = 'fd0f38d4-46dd-44ce-b318-c208f7f0e6df';
+        $AUTH_USER = 'kiwoom';
+        $AUTH_PASS = 'k1w00mp3rm4t4';
         header('Cache-Control: no-cache, must-revalidate, max-age=0');
         $has_supplied_credentials =! (empty($_SERVER['PHP_AUTH_USER']) && empty($_SERVER['PHP_AUTH_PW']));
         $is_not_authenticated = (
