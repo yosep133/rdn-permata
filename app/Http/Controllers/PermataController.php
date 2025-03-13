@@ -21,6 +21,7 @@ class PermataController extends Controller
     
     public function notif(Request $request){
         // try {
+            
             $validator = Validator::make($request->all(),[
                 "NotificationTransactionRq.TransactionInfo.GroupID"=>"required",
                 "NotificationTransactionRq.MsgRqHdr.CustRefID" => "required",
@@ -39,7 +40,7 @@ class PermataController extends Controller
             $transactionInfo = $notifTrans['TransactionInfo'];
             $statements = $transactionInfo['Statements'];
             
-            // Log::channel('notif')->info($request);
+            Log::channel('notif')->info($request->all());
 
             if ($validator->fails()) {
             //     # code error respon
