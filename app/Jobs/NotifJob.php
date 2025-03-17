@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Models\PermataAS;
+use App\Models\Tsms;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -32,51 +34,162 @@ class NotifJob implements ShouldQueue
         try {
             // get client no Carbon::now();
             
+
             $msgRqHdr = $this->permata['MsgRqHdr'];
             $transactionInfo = $this->permata['TransactionInfo'];
             $statements = $transactionInfo['Statements'];
-
+            
             $account =DB::connection('sasdev')
                         ->table('subacc')
                         ->select('no_cust')
                         ->where('account_sub','=',$transactionInfo['AccountNumber'])
                         ->get();
+
+            $permata = PermataAS::where('CustRefID',$msgRqHdr['CustRefID'])
+                    ->get();                        
+
+            $sFlag = $this->setFlag($account,$permata);
             //
-            $date = Carbon::now();
-            $amount ='' ;
-            if ( $statements['DC'] == 'Cr') {
-                $amount = '-'.$statements['CashValue'];
-            } else if ( $statements['DC'] == 'Dr')  {
-                $amount = $statements['CashValue'];
+            if (!is_null($account)) {
+                // send to cash bo 
+                if($this->insertCashBo($account,$this->permata)){
+                    // insert to tsms
+                    if ($sFlag == '0' && $account->phone2 != '') {
+                        $this->insertTSms($account,$permata);
+                    }
+                    if ($sFlag == '1' && $permata->dc == 'C'
+                        && $permata->trx_type > 'NTRF' && $account->phone2 != '') {
+                        $this->insertTSms($account,$this->permata);
+                        # code...
+                    }
+                }
             }
-            //  sending to cash bo 
-            echo 'queue 2 ';
-            DB::connection('sasoldev')
-            ->table('CashBo')
-            ->insert([
-                "DateBo" => Carbon::now(),
-                "ClientNo" => $account[0]->no_cust,
-                "Reference" => "Permata ".$date->format("Y/m/d H:m:s"),
-                "Amount"=> $amount,
-                "Type" => 'M',
-                "Flag" => 0
-            ]);
-            Log::info('send to Cashbo '.
-                "DateBo ".Carbon::now() .",ClientNo " .$account[0]->no_cust.
-                ",Reference " ."Permata ".$date->format("Y/m/d H:m:s").
-                ",Amount ".$amount.
-                ",Type ".'M'.
-                ",Flag "."0"
-            );
-            // update permataAs is to hero 
-            $resutl = DB::connection('sasoldev')
-                ->table('permataAS')
-                ->where('cust_ref_id','=',$msgRqHdr['CustRefID'])
-                ->update(['is_to_hero' => '1']);
 
         } catch (\Throwable $th) {
             //throw $th;
             Log::error($th);
         }
+    }
+
+    public function insertCashBo($account,$permata):bool 
+    {
+        
+        $msgRqHdr = $this->permata['MsgRqHdr'];
+        $transactionInfo = $this->permata['TransactionInfo'];
+        $statements = $transactionInfo['Statements'];
+        
+        $date = Carbon::now();
+        $amount ='' ;
+        if ( $statements['DC'] == 'Cr') {
+            $amount = '-'.$statements['CashValue'];
+        } else if ( $statements['DC'] == 'Dr')  {
+            $amount = $statements['CashValue'];
+        }
+        //  sending to cash bo 
+        echo 'queue 2 ';
+        $result = DB::connection('sasoldev')
+        ->table('CashBo')
+        ->insert([
+            "DateBo" => Carbon::now(),
+            "ClientNo" => $account[0]->no_cust,
+            "Reference" => "Permata ".$date->format("Y/m/d H:m:s"),
+            "Amount"=> $amount,
+            "Type" => 'M',
+            "Flag" => 0
+        ]);
+        if ($result) {
+            
+            Log::info('send to Cashbo '.
+            "DateBo ".Carbon::now() .",ClientNo " .$account[0]->no_cust.
+            ",Reference " ."Permata ".$date->format("Y/m/d H:m:s").
+            ",Amount ".$amount.
+            ",Type ".'M'.
+            ",Flag "."0"
+            );
+
+            // update permataAs is to hero 
+            $result = DB::connection('sasoldev')
+                ->table('permataAS')
+                ->where('cust_ref_id','=',$msgRqHdr['CustRefID'])
+                ->update(['is_to_hero' => '1']);
+            return true;
+        } else {
+            return false;
+        }
+        
+    }
+
+    
+    public function insertTSms($account,$permata){        
+        $tsms = new Tsms();
+        $tsms->clientno = $account->no_cust;
+        $tsms->name = $account->name;
+        $tsms->amount = $permata->cash_value;
+        $tsms->phone = $account->phone2;
+        $tsms->datercv = date("Y/m/d");
+        $tsms->flag = 0;
+        $tsms->accname = $permata->acc_no;
+        $tsms->account = $account->acc_namesub;
+        $tsms->bank = 'Permata';
+        $tsms->staclient = $account->lorf;
+        $tsms->stainput = 1;
+        if ($tsms->save()) {
+            Log::info('Berhasil Insert TSMS ' . $tsms->toJson() );
+        }else {
+            Log::info('Gagal Insert TSMS ' . $tsms->toJson() );
+        }
+        
+    }
+    
+    public function setFlag($account,$permata){
+        $sFlag = '1';
+        // Log::info('setsFlag '. $sFlag.' - last balance '.$this->getLastCashBalance().' - recieve '. $permata->recv_time." tolower ".str_contains(strtolower($permata->trx_desc),'ipo'));
+        $getLastBalance = Carbon::createFromFormat('Y-m-d H:i:s.u',$this->getLastCashBalance());
+        $recvTime = Carbon::createFromFormat('Y-m-d H:i:s.u',$permata->recv_time);
+         
+        if ($permata->cash_value > 0 && (
+            $permata->trx_type == 'NTRF' || $permata->trx_type == 'NINT' || $permata->trx_type == 'NREV' || $permata->trx_type == 'NTAX'
+        ) ) {
+            $sFlag = '0';
+        }
+        if ($recvTime->gt($getLastBalance)) {
+            $sFlag = '0';    
+        } else if (str_contains(strtolower($permata->trx_desc),'ipo')){
+            if ($recvTime->gt($getLastBalance)) {
+                $sFlag = '0';    
+            }
+        } /** */
+        Log::info("setFlag ". $sFlag. " recv.get(last) ".$recvTime->gt($getLastBalance)." tolower ".str_contains(strtolower($permata->trx_desc),'ipo')." amount ". $permata->cash_value);
+        return $sFlag;
+    }
+    
+    public function getLastCashBalance(){
+        $datebo = DB::connection('sasoldev')
+                ->table('CashBO')
+                ->select('datebo')
+                ->where('datebo','<',Carbon::now())
+                ->where('type','B')
+                ->where('reference','LIKE','permata%')
+                ->orderby('datebo','desc')
+                ->first();
+        return $datebo->datebo;
+    }
+
+    public function getCashBo($pTxType){
+        if ($pTxType = 'NTRF') 
+            $result = 'M';
+        else if ($pTxType = 'NINT') 
+            $result = 'I';
+        else if ($pTxType = 'NREV') 
+            $result = 'C';
+        else if ($pTxType = 'NKOR') 
+            $result = 'C';
+        else if ($pTxType = 'NTAX') 
+            $result = 'T';
+        else if ($pTxType = 'NCHG') 
+            $result = 'F';
+        else if ($pTxType = 'NEXT') 
+            $result = 'M';
+        return $result;
     }
 }
