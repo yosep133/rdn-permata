@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class SubAcc extends Model
 {
     use HasFactory;
-    protected $connection = 'sas';
+    protected $connection = 'sasdev';
     public $timestamps = false;
     protected $table = 'SubAcc';
     protected $fillable = [

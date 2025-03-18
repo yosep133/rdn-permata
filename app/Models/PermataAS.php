@@ -14,7 +14,7 @@ class PermataAS extends Model
     protected $primaryKey = 'cust_ref_id';
     protected $table = 'PermataAS';
     protected $fillable = [
-        'cust_ref_id','request_timestamp','group_id','seqnum','account_number','currency','value_date dat','opening_balance','extref','trx_type','flag','dc','cash_value','description','close_bal','notes','status'
+        'cust_ref_id','request_timestamp','group_id','seqnum','account_number','currency','value_date dat','opening_balance','extref','trx_type','flag','dc','cash_value','description','close_bal','notes','status','recv_time'
     ];
     protected $casts = [ 
         'request_timestamp'=>'datetime',

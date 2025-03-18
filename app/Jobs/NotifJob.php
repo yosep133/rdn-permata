@@ -41,27 +41,27 @@ class NotifJob implements ShouldQueue
             
             $account =DB::connection('sasdev')
                         ->table('subacc')
-                        ->select('no_cust')
+                        ->select('*')
                         ->where('account_sub','=',$transactionInfo['AccountNumber'])
                         ->get();
 
-            $permata = PermataAS::where('CustRefID',$msgRqHdr['CustRefID'])
-                    ->get();                        
+            $permata = PermataAS::where('cust_ref_id',$msgRqHdr['CustRefID'])
+                    ->first();                        
 
-            $sFlag = $this->setFlag($account,$permata);
+            // $sFlag = $this->setFlag($account,$permata);
             //
             if (!is_null($account)) {
                 // send to cash bo 
-                if($this->insertCashBo($account,$this->permata)){
+                if($this->insertCashBo($account,$permata)){
                     // insert to tsms
-                    if ($sFlag == '0' && $account->phone2 != '') {
-                        $this->insertTSms($account,$permata);
-                    }
-                    if ($sFlag == '1' && $permata->dc == 'C'
-                        && $permata->trx_type > 'NTRF' && $account->phone2 != '') {
-                        $this->insertTSms($account,$this->permata);
-                        # code...
-                    }
+                    // if ($sFlag == '0' && $account->phone2 != '') {
+                        $this->insertTSms($account[0],$permata);
+                    // }
+                    // if ($sFlag == '1' && $permata->dc == 'C'
+                    //     && $permata->trx_type > 'NTRF' && $account->phone2 != '') {
+                    //     $this->insertTSms($account,$this->permata);
+                    //     # code...
+                    // }
                 }
             }
 
@@ -69,6 +69,28 @@ class NotifJob implements ShouldQueue
             //throw $th;
             Log::error($th);
         }
+    }
+    
+    public function setFlag($account,$permata){
+        $sFlag = '1';
+        Log::info('setsFlag '. $sFlag.' - last balance '.$this->getLastCashBalance().' - recieve '. $permata->recv_time." tolower ".str_contains(strtolower($permata->trx_desc),'ipo'));
+        $getLastBalance = Carbon::createFromFormat('Y-m-d H:i:s.u',$this->getLastCashBalance());
+        $recvTime = Carbon::createFromFormat('Y-m-d H:i:s.u',$permata->recv_time);
+         
+        if ($permata->cash_value > 0 && (
+            $permata->trx_type == 'NTRF' || $permata->trx_type == 'NINT' || $permata->trx_type == 'NREV' || $permata->trx_type == 'NTAX'
+        ) ) {
+            $sFlag = '0';
+        }
+        if ($recvTime->gt($getLastBalance)) {
+            $sFlag = '0';    
+        } else if (str_contains(strtolower($permata->trx_desc),'ipo')){
+            if ($recvTime->gt($getLastBalance)) {
+                $sFlag = '0';    
+            }
+        } /** */
+        Log::info("setFlag ". $sFlag. " recv.get(last) ".$recvTime->gt($getLastBalance)." tolower ".str_contains(strtolower($permata->trx_desc),'ipo')." amount ". $permata->cash_value);
+        return $sFlag;
     }
 
     public function insertCashBo($account,$permata):bool 
@@ -80,9 +102,9 @@ class NotifJob implements ShouldQueue
         
         $date = Carbon::now();
         $amount ='' ;
-        if ( $statements['DC'] == 'Cr') {
+        if ( $statements['DC'] == 'C') {
             $amount = '-'.$statements['CashValue'];
-        } else if ( $statements['DC'] == 'Dr')  {
+        } else if ( $statements['DC'] == 'D')  {
             $amount = $statements['CashValue'];
         }
         //  sending to cash bo 
@@ -120,7 +142,8 @@ class NotifJob implements ShouldQueue
     }
 
     
-    public function insertTSms($account,$permata){        
+    public function insertTSms($account,$permata){   
+        Log::info('insert sms '.$account->no_cust);     
         $tsms = new Tsms();
         $tsms->clientno = $account->no_cust;
         $tsms->name = $account->name;
@@ -141,38 +164,19 @@ class NotifJob implements ShouldQueue
         
     }
     
-    public function setFlag($account,$permata){
-        $sFlag = '1';
-        // Log::info('setsFlag '. $sFlag.' - last balance '.$this->getLastCashBalance().' - recieve '. $permata->recv_time." tolower ".str_contains(strtolower($permata->trx_desc),'ipo'));
-        $getLastBalance = Carbon::createFromFormat('Y-m-d H:i:s.u',$this->getLastCashBalance());
-        $recvTime = Carbon::createFromFormat('Y-m-d H:i:s.u',$permata->recv_time);
-         
-        if ($permata->cash_value > 0 && (
-            $permata->trx_type == 'NTRF' || $permata->trx_type == 'NINT' || $permata->trx_type == 'NREV' || $permata->trx_type == 'NTAX'
-        ) ) {
-            $sFlag = '0';
-        }
-        if ($recvTime->gt($getLastBalance)) {
-            $sFlag = '0';    
-        } else if (str_contains(strtolower($permata->trx_desc),'ipo')){
-            if ($recvTime->gt($getLastBalance)) {
-                $sFlag = '0';    
-            }
-        } /** */
-        Log::info("setFlag ". $sFlag. " recv.get(last) ".$recvTime->gt($getLastBalance)." tolower ".str_contains(strtolower($permata->trx_desc),'ipo')." amount ". $permata->cash_value);
-        return $sFlag;
-    }
-    
     public function getLastCashBalance(){
         $datebo = DB::connection('sasoldev')
                 ->table('CashBO')
                 ->select('datebo')
                 ->where('datebo','<',Carbon::now())
                 ->where('type','B')
-                ->where('reference','LIKE','permata%')
+                ->where('reference','LIKE','Permata%')
                 ->orderby('datebo','desc')
                 ->first();
-        return $datebo->datebo;
+        Log::info('get last cash balance '.$datebo);
+        if (!is_null($datebo)) {
+            return $datebo->datebo;
+        }
     }
 
     public function getCashBo($pTxType){

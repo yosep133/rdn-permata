@@ -5,9 +5,8 @@ import basicSsl from '@vitejs/plugin-basic-ssl'
 
 // 002 set the Laravel host and the port
 const host = '127.0.0.1';
-const port = '8096';
+const port = '8095';
 
-e
 export default defineConfig({
     plugins: [
         laravel({
@@ -28,7 +27,7 @@ export default defineConfig({
             }
         },
         host,
-        port: 8096,
+        port: 8094,
         // 007 be sure that you have the Hot Module Replacement
         hmr: { host },
     }

@@ -42,7 +42,7 @@ class PermataController extends Controller
             
             Log::channel('notif')->info(json_encode($request->all()));
             // Log::channel('notif')->info($validator->fails());
-            if (!$validator->fails()) {
+            if ($validator->fails()) {
             //     # code error respon
                 $return = [
                     "NotificationTransactionRs" =>
