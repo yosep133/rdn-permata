@@ -48,20 +48,20 @@ class NotifJob implements ShouldQueue
             $permata = PermataAS::where('cust_ref_id',$msgRqHdr['CustRefID'])
                     ->first();                        
 
-            // $sFlag = $this->setFlag($account,$permata);
+            $sFlag = $this->setFlag($account,$permata);
             //
             if (!is_null($account)) {
                 // send to cash bo 
                 if($this->insertCashBo($account,$permata)){
                     // insert to tsms
-                    // if ($sFlag == '0' && $account->phone2 != '') {
+                    if ($sFlag == '0' && $account->phone2 != '') {
                         $this->insertTSms($account[0],$permata);
-                    // }
-                    // if ($sFlag == '1' && $permata->dc == 'C'
-                    //     && $permata->trx_type > 'NTRF' && $account->phone2 != '') {
-                    //     $this->insertTSms($account,$this->permata);
+                    }
+                    if ($sFlag == '1' && $permata->dc == 'C'
+                        && $permata->trx_type > 'NTRF' && $account->phone2 != '') {
+                        $this->insertTSms($account,$this->permata);
                     //     # code...
-                    // }
+                    }
                 }
             }
 
@@ -91,6 +91,23 @@ class NotifJob implements ShouldQueue
         } /** */
         Log::info("setFlag ". $sFlag. " recv.get(last) ".$recvTime->gt($getLastBalance)." tolower ".str_contains(strtolower($permata->trx_desc),'ipo')." amount ". $permata->cash_value);
         return $sFlag;
+    }
+
+    public function getLastCashBalance(){
+        $datebo = DB::connection('sasoldev')
+                ->table('CashBO')
+                ->select('datebo')
+                ->where('datebo','<',Carbon::now())
+                ->where('type','B')
+                ->where('reference','LIKE','Permata%')
+                ->orderby('datebo','desc')
+                ->first();
+        Log::info('get last cash balance '.$datebo);
+        if (!is_null($datebo)) {
+            return $datebo->datebo;
+        }else {
+            return Carbon::yesterday()->format('Y-m-d H:i:s.u');
+        }
     }
 
     public function insertCashBo($account,$permata):bool 
@@ -164,20 +181,6 @@ class NotifJob implements ShouldQueue
         
     }
     
-    public function getLastCashBalance(){
-        $datebo = DB::connection('sasoldev')
-                ->table('CashBO')
-                ->select('datebo')
-                ->where('datebo','<',Carbon::now())
-                ->where('type','B')
-                ->where('reference','LIKE','Permata%')
-                ->orderby('datebo','desc')
-                ->first();
-        Log::info('get last cash balance '.$datebo);
-        if (!is_null($datebo)) {
-            return $datebo->datebo;
-        }
-    }
 
     public function getCashBo($pTxType){
         if ($pTxType = 'NTRF') 
