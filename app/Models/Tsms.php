@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Tsms extends Model
 {
     use HasFactory;
-    protected $connection = 'sasol';
+    protected $connection = 'sasoldev';
     public $timestamps = false;
     protected $table = 't_sms';
     protected $fillable = [

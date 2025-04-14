@@ -41,7 +41,7 @@ class PermataController extends Controller
             $statements = $transactionInfo['Statements'];
             
             Log::channel('notif')->info(json_encode($request->all()));
-
+            // Log::channel('notif')->info($validator->fails());
             if ($validator->fails()) {
             //     # code error respon
                 $return = [
@@ -55,7 +55,7 @@ class PermataController extends Controller
                             ]
                         ]
                 ];
-                return response()->json($return)->setStatusCode(Response::HTTP_UNAUTHORIZED);
+                return response()->json($return)->setStatusCode(Response::HTTP_OK);
              } else {
                 $cekExtRef = PermataAS::where('cust_ref_id',$msgRqHdr['CustRefID'])->first();
                 
@@ -78,8 +78,8 @@ class PermataController extends Controller
                                 ]
                             ]
                     ];
-                    Log::error(" CustRefId:".$msgRqHdr['CustRefID']." Already input");
-                    return response()->json($return)->setStatusCode(Response::HTTP_UNAUTHORIZED);;
+                    Log::channel('notif')->error(" CustRefId:".$msgRqHdr['CustRefID']." Already input");
+                    return response()->json($return)->setStatusCode(Response::HTTP_OK);;
                  }
                  elseif (!$cekAccount) {
                     $return = [
@@ -93,8 +93,8 @@ class PermataController extends Controller
                                 ]
                             ]
                     ];
-                    Log::error("Cannot Find Account Number ".$transactionInfo['AccountNumber']. " CustRefId:".$msgRqHdr['CustRefID']);
-                    return response()->json($return)->setStatusCode(Response::HTTP_UNAUTHORIZED);                
+                    Log::channel('notif')->error("Cannot Find Account Number ".$transactionInfo['AccountNumber']. " CustRefId:".$msgRqHdr['CustRefID']);
+                    return response()->json($return)->setStatusCode(Response::HTTP_OK);                
                  } else {
                     $data = new PermataAS();                    
                     $data->cust_ref_id = $msgRqHdr['CustRefID'] ;
@@ -151,7 +151,7 @@ class PermataController extends Controller
                     ]
             ];
 
-            return response()->json($return)->setStatusCode(Response::HTTP_UNAUTHORIZED);
+            return response()->json($return)->setStatusCode(Response::HTTP_OK);
             
         // } catch (\Throwable $th) {
         //     //throw $th;
